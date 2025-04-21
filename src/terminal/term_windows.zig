@@ -24,14 +24,16 @@ const ConsoleModeMutex = struct {
 
 var original_console_mode_mutex: ConsoleModeMutex = .{};
 
-const stdout = std.io.getStdOut();
+fn stdout() std.fs.File {
+    return std.io.getStdOut();
+}
 
 pub fn enableRawmode() Error!void {
     const orig_console_mode = original_console_mode_mutex.lock();
     defer original_console_mode_mutex.unlock();
 
     var mode: c.DWORD = undefined;
-    const get_result = c.GetConsoleMode(stdout.handle, &mode);
+    const get_result = c.GetConsoleMode(stdout().handle, &mode);
     if (get_result == 0) {
         return error.GetModeError;
     }
@@ -39,7 +41,7 @@ pub fn enableRawmode() Error!void {
     if (orig_console_mode.* == null)
         orig_console_mode.* = mode;
 
-    const set_result = c.SetConsoleMode(stdout.handle, 0);
+    const set_result = c.SetConsoleMode(stdout().handle, 0);
     if (set_result == 0)
         return error.SetModeError;
 }
@@ -49,7 +51,7 @@ pub fn disableRawmode() Error!void {
     defer original_console_mode_mutex.unlock();
 
     if (orig_console_mode.*) |mode| {
-        const set_result = c.SetConsoleMode(stdout.handle, mode);
+        const set_result = c.SetConsoleMode(stdout().handle, mode);
         if (set_result == 0)
             return error.SetModeError;
     }

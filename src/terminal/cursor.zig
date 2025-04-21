@@ -1,22 +1,24 @@
 const std = @import("std");
 
-const stdout = std.io.getStdOut().writer();
+fn stdout() std.fs.File {
+    return std.io.getStdOut();
+}
 
-pub const Error = @TypeOf(stdout).Error;
+pub const Error = std.io.AnyWriter.Error;
 
 pub fn resetPos() Error!void {
-    try stdout.writeAll("\x1b[H");
+    try stdout().writeAll("\x1b[H");
 }
 
 pub fn moveTo(col: usize, row: usize) Error!void {
-    try stdout.print("\x1b[{};{}H", .{ row, col });
+    try stdout().writer().print("\x1b[{};{}H", .{ row, col });
 }
 
 pub fn getPos() (Error || error{ReadError})!struct { col: usize, row: usize } {
     const alloc = std.heap.smp_allocator;
     const stdin = std.io.getStdIn();
 
-    try stdout.writeAll("\x1b[6n");
+    try stdout().writeAll("\x1b[6n");
     var poller = std.io.poll(alloc, enum { stdin }, .{ .stdin = stdin });
     defer poller.deinit();
 
@@ -24,8 +26,8 @@ pub fn getPos() (Error || error{ReadError})!struct { col: usize, row: usize } {
         var buf: [64]u8 = undefined;
         const len = poller.fifo(.stdin).read(&buf);
 
-        // std.debug.print("\\x1b{s}\n", .{buf[1..len]});
-        // std.debug.print("col: {s}\trow: {s}", .{ buf[2..4], buf[5..6] });
+        // std.debug.writer().print("\\x1b{s}\n", .{buf[1..len]});
+        // std.debug.writer().print("col: {s}\trow: {s}", .{ buf[2..4], buf[5..6] });
 
         var splitter = std.mem.splitScalar(u8, buf[0..len], ';');
         const lhs = splitter.next() orelse return error.ReadError;
@@ -45,35 +47,35 @@ pub fn getPos() (Error || error{ReadError})!struct { col: usize, row: usize } {
 }
 
 pub fn moveUp(times: usize) Error!void {
-    try stdout.print("\x1b[{}A", .{times});
+    try stdout().writer().print("\x1b[{}A", .{times});
 }
 
 pub fn moveDown(times: usize) Error!void {
-    try stdout.print("\x1b[{}B", .{times});
+    try stdout().writer().print("\x1b[{}B", .{times});
 }
 
 pub fn moveRight(times: usize) Error!void {
-    try stdout.print("\x1b[{}C", .{times});
+    try stdout().writer().print("\x1b[{}C", .{times});
 }
 
 pub fn moveLeft(times: usize) Error!void {
-    try stdout.print("\x1b[{}D", .{times});
+    try stdout().writer().print("\x1b[{}D", .{times});
 }
 
 pub fn savePos() Error!void {
-    try stdout.writeAll("\x1b[s");
+    try stdout().writeAll("\x1b[s");
 }
 
 pub fn restorePos() Error!void {
-    try stdout.writeAll("\x1b[u");
+    try stdout().writeAll("\x1b[u");
 }
 
 pub fn hide() Error!void {
-    try stdout.writeAll("\x1b[?25l");
+    try stdout().writeAll("\x1b[?25l");
 }
 
 pub fn show() Error!void {
-    try stdout.writeAll("\x1b[?25h");
+    try stdout().writeAll("\x1b[?25h");
 }
 
 //  TODO: ADD REST OF CURSOR COMMANDS:

@@ -3,7 +3,9 @@ const std = @import("std");
 const Mutex = std.Thread.Mutex;
 
 const c = @cImport(@cInclude("termios.h"));
-const stdout = std.io.getStdOut();
+fn stdout() std.fs.File {
+    return std.io.getStdOut();
+}
 
 const Error = @import("./term.zig").Error;
 
@@ -31,7 +33,7 @@ pub fn enableRawmode() Error!void {
     defer original_termios_mutex.unlock();
 
     var termios: c.termios = undefined;
-    const get_result = c.tcgetattr(stdout.handle, &termios);
+    const get_result = c.tcgetattr(stdout().handle, &termios);
     if (get_result == -1)
         return error.GetModeError;
 
@@ -40,7 +42,7 @@ pub fn enableRawmode() Error!void {
 
     c.cfmakeraw(&termios);
 
-    const set_result = c.tcsetattr(stdout.handle, c.TCSANOW, &termios);
+    const set_result = c.tcsetattr(stdout().handle, c.TCSANOW, &termios);
     if (set_result == -1)
         return error.SetModeError;
 }
@@ -50,7 +52,7 @@ pub fn disableRawmode() Error!void {
     defer original_termios_mutex.unlock();
 
     if (original_termios.*) |termios| {
-        const set_result = c.tcsetattr(stdout.handle, c.TCSANOW, &termios);
+        const set_result = c.tcsetattr(stdout().handle, c.TCSANOW, &termios);
         if (set_result == -1)
             return error.SetModeError;
     }
