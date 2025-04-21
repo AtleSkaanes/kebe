@@ -8,8 +8,40 @@ pub fn resetPos() Error!void {
     try stdout.writeAll("\x1b[H");
 }
 
-pub fn moveTo(line: usize, col: usize) Error!void {
-    try stdout.print("\x1b[{};{}H", line, col);
+pub fn moveTo(col: usize, row: usize) Error!void {
+    try stdout.print("\x1b[{};{}H", .{ row, col });
+}
+
+pub fn getPos() (Error || error{ReadError})!struct { col: usize, row: usize } {
+    const alloc = std.heap.smp_allocator;
+    const stdin = std.io.getStdIn();
+
+    try stdout.writeAll("\x1b[6n");
+    var poller = std.io.poll(alloc, enum { stdin }, .{ .stdin = stdin });
+    defer poller.deinit();
+
+    if (poller.poll() catch return error.ReadError) {
+        var buf: [64]u8 = undefined;
+        const len = poller.fifo(.stdin).read(&buf);
+
+        // std.debug.print("\\x1b{s}\n", .{buf[1..len]});
+        // std.debug.print("col: {s}\trow: {s}", .{ buf[2..4], buf[5..6] });
+
+        var splitter = std.mem.splitScalar(u8, buf[0..len], ';');
+        const lhs = splitter.next() orelse return error.ReadError;
+        const rhs = splitter.next() orelse return error.ReadError;
+
+        // LHS needs to be ESC[# and rhs needs to be #R
+        if (lhs.len < 3 or rhs.len < 2)
+            return error.ReadError;
+
+        const row_int = std.fmt.parseInt(usize, lhs[2..], 10) catch return error.ReadError;
+        const col_int = std.fmt.parseInt(usize, rhs[0 .. rhs.len - 1], 10) catch return error.ReadError;
+
+        return .{ .col = col_int, .row = row_int };
+    } else {
+        return error.ReadError;
+    }
 }
 
 pub fn moveUp(times: usize) Error!void {
@@ -48,5 +80,4 @@ pub fn show() Error!void {
 // - ESC[#E    moves cursor to beginning of next line, # lines down
 // - ESC[#F    moves cursor to beginning of previous line, # lines up
 // - ESC[#G    moves cursor to column #
-// - ESC[6n    request cursor position (reports as ESC[#;#R)
 // - ESC M     moves cursor one line up, scrolling if needed
