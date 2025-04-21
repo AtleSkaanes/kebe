@@ -5,7 +5,7 @@ const screen = @import("terminal/screen.zig");
 const term = @import("terminal/term.zig");
 
 pub fn main() !void {
-    const alloc = std.heap.page_allocator;
+    const alloc = std.heap.smp_allocator;
 
     try screen.enterAltScreen();
     defer screen.exitAltScreen() catch {};
@@ -16,6 +16,8 @@ pub fn main() !void {
     try cursor.hide();
     defer cursor.show() catch {};
 
+    const pos = try cursor.getPos();
+    defer cursor.moveTo(pos.col, pos.col) catch {};
     try cursor.resetPos();
 
     const styled = try style.StyledStr.init(
