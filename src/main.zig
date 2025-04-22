@@ -13,9 +13,6 @@ pub fn main() !void {
     try term.enableRawmode();
     defer term.disableRawmode() catch {};
 
-    try cursor.hide();
-    defer cursor.show() catch {};
-
     const pos = try cursor.getPos();
     defer cursor.moveTo(pos.col, pos.col) catch {};
     try cursor.resetPos();
@@ -35,11 +32,21 @@ pub fn main() !void {
     const str = try styled.allocStr();
     defer alloc.free(str);
 
-    for (0..20) |_| {
-        std.debug.print("{s}", .{str});
-        std.Thread.sleep(std.time.ns_per_s * 0.5);
-        try screen.eraseCurrentLine();
+    try cursor.moveTo(10, 5);
+    for (0..16) |i| {
+        const shape: cursor.CursorShape = @enumFromInt(i % 5 + 1);
+        try cursor.setCursorShape(shape);
+
         try cursor.resetPos();
+        std.debug.print("{s}", .{str});
+
+        try cursor.moveTo(10, 5);
+        std.Thread.sleep(std.time.ns_per_s * 0.5);
+
+        try cursor.resetPos();
+        try screen.eraseCurrentLine();
+
+        try cursor.moveTo(10, 5);
         std.Thread.sleep(std.time.ns_per_s * 0.5);
     }
 }

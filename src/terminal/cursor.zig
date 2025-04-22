@@ -6,6 +6,19 @@ fn stdout() std.fs.File {
 
 pub const Error = std.io.AnyWriter.Error;
 
+pub const CursorShape = enum(u8) {
+    block_blinking = 1,
+    block,
+    underline_blinking,
+    underline,
+    bar_blinking,
+    bar,
+};
+
+pub fn setCursorShape(shape: CursorShape) Error!void {
+    try stdout().writer().print("\x1b[{} q", .{@intFromEnum(shape)});
+}
+
 pub fn resetPos() Error!void {
     try stdout().writeAll("\x1b[H");
 }
