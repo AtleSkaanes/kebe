@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const cursor = @import("./cursor.zig");
+
 pub const ToAnsiErr = error{
     BufTooSmall,
 };
@@ -232,6 +234,21 @@ pub const StyledStr = struct {
         return front_sb.toOwnedSlice();
     }
 
+    pub fn write_at(self: Self, col: usize, row: usize) !void {
+        const alloc = std.heap.smp_allocator;
+
+        const str = try self.allocStr();
+        defer alloc.free(str);
+
+        const pos = try cursor.getPos();
+
+        try cursor.moveTo(col, row);
+        try std.io.getStdOut().writeAll(str);
+
+        // Reset position
+        try cursor.moveTo(pos.col, pos.row);
+    }
+
     pub fn set_fg(self: *Self, fg: Color) void {
         self.style.fg = fg;
     }
@@ -240,7 +257,7 @@ pub const StyledStr = struct {
         self.style.bg = bg;
     }
 
-    pub fn set_modifiers(self: *Self, modifs: []const Modif) !void {
+    pub fn set_modifiers(self: *Self, modifs: []const Modif) std.mem.Allocator.Error!void {
         self.style.modifs = try self.allocator.dupe(Modif, modifs);
     }
 };
@@ -268,4 +285,3 @@ test "style string" {
 
     try std.testing.expect(std.mem.eql(u8, str, expected));
 }
-

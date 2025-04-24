@@ -29,18 +29,13 @@ pub fn main() !void {
 
     defer styled.deinit();
 
-    const str = try styled.allocStr();
-    defer alloc.free(str);
-
     try cursor.moveTo(10, 5);
     for (0..16) |i| {
         const shape: cursor.CursorShape = @enumFromInt(i % 5 + 1);
         try cursor.setCursorShape(shape);
 
-        try cursor.resetPos();
-        std.debug.print("{s}", .{str});
+        try styled.write_at(0, 0);
 
-        try cursor.moveTo(10, 5);
         std.Thread.sleep(std.time.ns_per_s * 0.5);
 
         try cursor.resetPos();
