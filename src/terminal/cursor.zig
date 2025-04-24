@@ -7,6 +7,11 @@ fn stdout() std.fs.File {
 
 pub const Error = std.io.AnyWriter.Error;
 
+pub const Position = struct {
+    col: usize,
+    row: usize,
+};
+
 pub const CursorShape = enum(u8) {
     block_blinking = 1,
     block,
@@ -28,7 +33,7 @@ pub fn moveTo(col: usize, row: usize) Error!void {
     try stdout().writer().print("\x1b[{};{}H", .{ row, col });
 }
 
-pub fn getPos() (Error || error{ReadError})!struct { col: usize, row: usize } {
+pub fn getPos() (Error || error{ReadError})!Position {
     const stdin = std.io.getStdIn();
 
     try stdout().writeAll("\x1b[6n");
